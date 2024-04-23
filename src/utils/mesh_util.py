@@ -53,7 +53,7 @@ def save_glb_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_
     texture_pil = Image.fromarray((texmap_hxwx3 * 255).astype(np.uint8))
     texture_bytes = texture_pil.tobytes()
 
-    material = trimesh.visual.material.TextureVisuals(image=texture_pil)
+    # material = trimesh.visual.material.TextureVisuals(image=texture_pil)
 
     mesh.visual = trimesh.visual.TextureVisuals(uv=tcoords_px2, image=texture_pil)
 
