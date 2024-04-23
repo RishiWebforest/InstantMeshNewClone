@@ -49,15 +49,19 @@ def save_glb_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_
         faces=facenp_fx3,
         process=False  # Disable automatic processing to keep UVs intact
     )
-    
-    texture_pil = Image.fromarray((texmap_hxwx3 * 255).astype(np.uint8))
-    texture_bytes = texture_pil.tobytes()
 
-    # material = trimesh.visual.material.TextureVisuals(image=texture_pil)
+    texture_pil = Image.fromarray((texmap_hxwx3 * 255).astype(np.uint8))
 
     mesh.visual = trimesh.visual.TextureVisuals(uv=tcoords_px2, image=texture_pil)
 
-    mesh.export(fname, file_type='glb', include_texture=True)
+    scene = trimesh.Scene(mesh)
+
+    # Export the scene to GLB format
+    data = trimesh.exchange.gltf.export_glb(scene, include_normals=True, extension_webp=False)
+
+    # Write the GLB data to a file
+    with open(fname, 'wb') as f:
+        f.write(data)
 
 def save_obj_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname):
     import os
