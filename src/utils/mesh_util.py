@@ -13,6 +13,8 @@ import cv2
 import numpy as np
 import nvdiffrast.torch as dr
 from PIL import Image
+import base64
+from io import BytesIO
 
 
 def save_obj(pointnp_px3, facenp_fx3, colornp_px3, fpath):
@@ -40,26 +42,41 @@ def save_glb(pointnp_px3, facenp_fx3, colornp_px3, fpath):
     mesh.export(fpath, 'glb')
 
 def save_glb_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname):
-    
+
     pointnp_px3 = pointnp_px3 @ np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
     facenp_fx3 = facenp_fx3[:, [2, 1, 0]]
 
-    mesh = trimesh.Trimesh(
-        vertices=pointnp_px3,
-        faces=facenp_fx3,
-        process=False  # Disable automatic processing to keep UVs intact
-    )
+    mesh = trimesh.Trimesh(vertices=pointnp_px3, faces=facenp_fx3, process=False)
+    
+    # Process texture for better visual output
+    img = np.asarray(texmap_hxwx3 * 255, dtype=np.uint8)  # Simplified assuming texmap_hxwx3 is already normalized
+    pil_img = Image.fromarray(img, 'RGB')
+    buffered = BytesIO()
+    pil_img.save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+    img_uri = f"data:image/png;base64,{img_str}"
+    
+    # Create texture and set in visuals
+    mesh.visual = trimesh.visual.TextureVisuals(uv=tcoords_px2, image=pil_img)
 
-    texture_pil = Image.fromarray((texmap_hxwx3 * 255).astype(np.uint8))
-
-    mesh.visual = trimesh.visual.TextureVisuals(uv=tcoords_px2, image=texture_pil)
-
+    # Create scene and manually add material definitions
     scene = trimesh.Scene(mesh)
+    # Assuming PBRMaterial definition is desired
+    scene.meshes[0].visual.material = {
+        'pbrMetallicRoughness': {
+            'baseColorTexture': {
+                'index': 0,
+                'texCoord': 0,
+                'source': img_uri  # Embedding the image directly
+            },
+            'metallicFactor': 0.4,
+            'roughnessFactor': 0.6
+        }
+    }
 
-    # Export the scene to GLB format
-    data = trimesh.exchange.gltf.export_glb(scene, include_normals=True, extension_webp=False)
+    # Export GLB with embedded texture
+    data = trimesh.exchange.gltf.export_glb(scene)
 
-    # Write the GLB data to a file
     with open(fname, 'wb') as f:
         f.write(data)
 
