@@ -77,6 +77,8 @@ def save_glb_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_
     # Export GLB with embedded texture
     data = trimesh.exchange.gltf.export_glb(scene)
 
+    print(f">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> CHIRAG")
+
     with open(fname, 'wb') as f:
         f.write(data)
 
