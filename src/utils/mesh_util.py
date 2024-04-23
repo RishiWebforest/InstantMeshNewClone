@@ -42,6 +42,7 @@ def save_glb(pointnp_px3, facenp_fx3, colornp_px3, fpath):
 def save_glb_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname):
     
     pointnp_px3 = pointnp_px3 @ np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
+    facenp_fx3 = facenp_fx3[:, [2, 1, 0]]
 
     mesh = trimesh.Trimesh(
         vertices=pointnp_px3,
