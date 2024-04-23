@@ -68,7 +68,7 @@ def save_glb_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_
 
     glb_data['materials'] = materials
 
-    mesh.export(fname, 'glb', include_normals=False, include_color=False, include_texture=True, extras=glb_data)
+    mesh.export(fname, 'glb')
 
 
 def save_obj_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname):
