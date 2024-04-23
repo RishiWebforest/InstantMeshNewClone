@@ -47,29 +47,17 @@ def save_glb_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_
     mesh = trimesh.Trimesh(
         vertices=pointnp_px3,
         faces=facenp_fx3,
-        vertex_colors=None,  # Disable vertex colors for now
         process=False  # Disable automatic processing to keep UVs intact
     )
+    
+    texture_pil = Image.fromarray((texmap_hxwx3 * 255).astype(np.uint8))
+    texture_bytes = texture_pil.tobytes()
 
-    glb_data = {}
+    material = trimesh.visual.material.TextureVisuals(image=texture_pil)
 
-    materials = []
-    for texture_index, texture_data in enumerate(texmap_hxwx3):
-        # Define texture
-        texture = trimesh.visual.texture.TextureVisuals(
-            uv=tcoords_px2[texture_index],
-            image=texture_data
-        )
-
-        material = trimesh.visual.material.PBRMaterial(
-            base_color_texture=texture
-        )
-        materials.append(material)
-
-    glb_data['materials'] = materials
+    mesh.visual = trimesh.visual.TextureVisuals(uv=tcoords_px2, image=texture_pil)
 
     mesh.export(fname, 'glb')
-
 
 def save_obj_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname):
     import os
