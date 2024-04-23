@@ -51,17 +51,24 @@ def save_glb_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_
         process=False  # Disable automatic processing to keep UVs intact
     )
 
-    # Create a PBR material with a texture map
-    material = trimesh.visual.material.PBRMaterial(
-        base_color_texture=trimesh.visual.texture.TextureVisuals(
-            uv=tcoords_px2,
-            image=texmap_hxwx3
+    glb_data = {}
+
+    materials = []
+    for texture_index, texture_data in enumerate(texmap_hxwx3):
+        # Define texture
+        texture = trimesh.visual.texture.TextureVisuals(
+            uv=tcoords_px2[texture_index],
+            image=texture_data
         )
-    )
 
-    mesh.visual.material = material
+        material = trimesh.visual.material.PBRMaterial(
+            base_color_texture=texture
+        )
+        materials.append(material)
 
-    mesh.export(fname, 'glb')
+    glb_data['materials'] = materials
+
+    mesh.export(fname, 'glb', include_normals=False, include_color=False, include_texture=True, extras=glb_data)
 
 
 def save_obj_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname):
