@@ -16,7 +16,6 @@ import nvdiffrast.torch as dr
 from PIL import Image
 import base64
 from io import BytesIO
-import bpy
 
 
 def save_obj(pointnp_px3, facenp_fx3, colornp_px3, fpath):
@@ -43,46 +42,24 @@ def save_glb(pointnp_px3, facenp_fx3, colornp_px3, fpath):
     )
     mesh.export(fpath, 'glb')
 
-def convert_obj_to_glb(fname, new_fname):
-    # Clear existing data
-    bpy.ops.wm.read_factory_settings(use_empty=True)
+def save_glb_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname, mesh_vis_fname):
+    mesh = trimesh.load(fname)
 
-    # Import OBJ file
-    bpy.ops.import_scene.obj(filepath=fname)
+    mesh_basename = os.path.basename(fname).split('.')[0]
+    mesh_dirname = os.path.dirname(fname)
 
-    # Export to GLB
-    bpy.ops.export_scene.gltf(
-        filepath=new_fname,
-        export_format='GLB',
-        use_selection=True,
-        use_active_scene=True,
-        export_apply=True,
-        export_texcoords=True,
-        export_materials='EXPORT',
-        export_yup=True,
-        export_normals=True,
-        export_image_format='AUTO',
-        export_jpeg_quality=75,
-        export_import_convert_lighting_mode='SPEC',
-        export_colors=True,
-        export_force_sampling=True,
-        export_animation_mode='ACTIONS',
-        export_negative_frame='SLIDE',
-        export_optimize_animation_keep_anim_armature=True,
-        export_anim_single_armature=True,
-        export_reset_pose_bones=True,
-        export_rest_position_armature=True,
-        export_skins=True,
-        export_influence_nb=4,
-        export_morph=True,
-        export_morph_normal=True,
-        export_morph_animation=True,
-        export_morph_reset_sk_data=True
-    )
+    matching_file_paths = []
 
-    # Optionally, quit Blender
-    bpy.ops.wm.quit_blender()
+    for file in os.listdir(mesh_dirname):
+        file_path = os.path.join(mesh_dirname, file)
+        if file.startswith(mesh_basename) and (file.lower().endswith('.png') or file.lower().endswith('.jpg') or file.lower().endswith('.webp')):
+            matching_file_paths.append(file_path)
 
+    for file_path in matching_file_paths:
+        texture_image = Image.open(file_path)
+        mesh.visual.material.texture = texture_image
+    
+    mesh.export(mesh_vis_fname, 'glb')
 
 def save_obj_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname):
     import os
