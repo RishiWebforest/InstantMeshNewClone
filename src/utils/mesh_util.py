@@ -6,6 +6,7 @@
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION & AFFILIATES is strictly prohibited.
 
+import os
 import torch
 import xatlas
 import trimesh
@@ -15,6 +16,7 @@ import nvdiffrast.torch as dr
 from PIL import Image
 import base64
 from io import BytesIO
+import bpy
 
 
 def save_obj(pointnp_px3, facenp_fx3, colornp_px3, fpath):
@@ -41,47 +43,46 @@ def save_glb(pointnp_px3, facenp_fx3, colornp_px3, fpath):
     )
     mesh.export(fpath, 'glb')
 
-def save_glb_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname):
+def convert_obj_to_glb(fname, new_fname):
+    # Clear existing data
+    bpy.ops.wm.read_factory_settings(use_empty=True)
 
-    # Normalize and scale image data
-    lo, hi = 0, 1
-    img = np.asarray(texmap_hxwx3, dtype=np.float32)
-    img = (img - lo) * (255 / (hi - lo))
-    img = img.clip(0, 255)
+    # Import OBJ file
+    bpy.ops.import_scene.obj(filepath=fname)
 
-    # Mask and dilate the image to fill holes
-    mask = np.sum(img.astype(np.float32), axis=-1, keepdims=True)
-    mask = (mask <= 3.0).astype(np.float32)
-    kernel = np.ones((3, 3), 'uint8')
-    dilate_img = cv2.dilate(img, kernel, iterations=1)
-    img = img * (1 - mask) + dilate_img * mask
-    img = img.clip(0, 255).astype(np.uint8)
-
-    # Create a PIL image from the numpy array, flipped vertically
-    texture_image = Image.fromarray(img[::-1, :, :], 'RGB')
-
-    # Convert to base64 for embedding
-    buffered = BytesIO()
-    texture_image.save(buffered, format="PNG")
-    img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
-    img_uri = f"data:image/png;base64,{img_str}"
-
-    # Create trimesh object
-    mesh = trimesh.Trimesh(vertices=pointnp_px3, faces=facenp_fx3, process=False)
-
-    # Set up material using PBR
-    material = trimesh.visual.material.PBRMaterial(
-        baseColorTexture=trimesh.visual.texture.TextureVisuals(image=img_uri),
-        metallicFactor=0.4,
-        roughnessFactor=0.6
+    # Export to GLB
+    bpy.ops.export_scene.gltf(
+        filepath=new_fname,
+        export_format='GLB',
+        use_selection=True,
+        use_active_scene=True,
+        export_apply=True,
+        export_texcoords=True,
+        export_materials='EXPORT',
+        export_yup=True,
+        export_normals=True,
+        export_image_format='AUTO',
+        export_jpeg_quality=75,
+        export_import_convert_lighting_mode='SPEC',
+        export_colors=True,
+        export_force_sampling=True,
+        export_animation_mode='ACTIONS',
+        export_negative_frame='SLIDE',
+        export_optimize_animation_keep_anim_armature=True,
+        export_anim_single_armature=True,
+        export_reset_pose_bones=True,
+        export_rest_position_armature=True,
+        export_skins=True,
+        export_influence_nb=4,
+        export_morph=True,
+        export_morph_normal=True,
+        export_morph_animation=True,
+        export_morph_reset_sk_data=True
     )
 
-    # Apply texture visuals and material to the mesh
-    mesh.visual = trimesh.visual.TextureVisuals(uv=tcoords_px2, image=texture_image)
-    mesh.visual.material = material
+    # Optionally, quit Blender
+    bpy.ops.wm.quit_blender()
 
-    # Export the mesh as a GLB file
-    mesh.export(fname, file_type='glb')
 
 def save_obj_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname):
     import os

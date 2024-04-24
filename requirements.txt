@@ -16,4 +16,5 @@ bitsandbytes
 imageio[ffmpeg]
 xatlas
 plyfile
+bpy
 git+https://github.com/NVlabs/nvdiffrast/
