@@ -43,42 +43,45 @@ def save_glb(pointnp_px3, facenp_fx3, colornp_px3, fpath):
 
 def save_glb_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname):
 
-    # Transform the vertex positions and face indices
-    pointnp_px3 = pointnp_px3 @ np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
-    facenp_fx3 = facenp_fx3[:, [2, 1, 0]]
+    # Normalize and scale image data
+    lo, hi = 0, 1
+    img = np.asarray(texmap_hxwx3, dtype=np.float32)
+    img = (img - lo) * (255 / (hi - lo))
+    img = img.clip(0, 255)
 
-    # Create the mesh
-    mesh = trimesh.Trimesh(vertices=pointnp_px3, faces=facenp_fx3, process=False)
-    
-    # Convert texture to image and encode in base64
-    img = Image.fromarray((texmap_hxwx3 * 255).astype(np.uint8))
+    # Mask and dilate the image to fill holes
+    mask = np.sum(img.astype(np.float32), axis=-1, keepdims=True)
+    mask = (mask <= 3.0).astype(np.float32)
+    kernel = np.ones((3, 3), 'uint8')
+    dilate_img = cv2.dilate(img, kernel, iterations=1)
+    img = img * (1 - mask) + dilate_img * mask
+    img = img.clip(0, 255).astype(np.uint8)
+
+    # Create a PIL image from the numpy array, flipped vertically
+    texture_image = Image.fromarray(img[::-1, :, :], 'RGB')
+
+    # Convert to base64 for embedding
     buffered = BytesIO()
-    img.save(buffered, format="PNG")
+    texture_image.save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
     img_uri = f"data:image/png;base64,{img_str}"
-    
-    # Set texture visuals
-    mesh.visual = trimesh.visual.TextureVisuals(uv=tcoords_px2, image=img)
 
-    # Create a scene
-    scene = trimesh.Scene(mesh)
+    # Create trimesh object
+    mesh = trimesh.Trimesh(vertices=pointnp_px3, faces=facenp_fx3, process=False)
 
-    # Modify each geometry in the scene
-    for geom in scene.geometry.values():
-        geom.visual.material = trimesh.visual.material.PBRMaterial(
-            baseColorTexture=trimesh.visual.texture.TextureVisuals(image=img_uri),
-            metallicFactor=0.4,
-            roughnessFactor=0.6
-        )
+    # Set up material using PBR
+    material = trimesh.visual.material.PBRMaterial(
+        baseColorTexture=trimesh.visual.texture.TextureVisuals(image=img_uri),
+        metallicFactor=0.4,
+        roughnessFactor=0.6
+    )
 
-    # Export the scene to a GLB file
-    data = trimesh.exchange.gltf.export_glb(scene)
+    # Apply texture visuals and material to the mesh
+    mesh.visual = trimesh.visual.TextureVisuals(uv=tcoords_px2, image=texture_image)
+    mesh.visual.material = material
 
-    print(f">>>>>>>>>>>>>>>>>>>> CHIRAG SHAH")
-
-    # Save the data to a file
-    with open(fname, 'wb') as f:
-        f.write(data)
+    # Export the mesh as a GLB file
+    mesh.export(fname, file_type='glb')
 
 def save_obj_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname):
     import os
