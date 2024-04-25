@@ -45,19 +45,28 @@ def save_glb(pointnp_px3, facenp_fx3, colornp_px3, fpath):
 def save_glb_with_mtl(pointnp_px3, tcoords_px2, facenp_fx3, facetex_fx3, texmap_hxwx3, fname, mesh_vis_fname):
     mesh = trimesh.load(fname)
 
-    # mesh_basename = os.path.basename(fname).split('.')[0]
-    # mesh_dirname = os.path.dirname(fname)
+    mesh_basename = os.path.basename(fname).split('.')[0]
+    mesh_dirname = os.path.dirname(fname)
 
-    # matching_file_paths = []
+    matching_file_paths = []
 
-    # for file in os.listdir(mesh_dirname):
-    #     file_path = os.path.join(mesh_dirname, file)
-    #     if file.startswith(mesh_basename) and (file.lower().endswith('.png') or file.lower().endswith('.jpg') or file.lower().endswith('.webp')):
-    #         matching_file_paths.append(file_path)
+    for file in os.listdir(mesh_dirname):
+        file_path = os.path.join(mesh_dirname, file)
+        if file.startswith(mesh_basename) and (file.lower().endswith('.png') or file.lower().endswith('.jpg') or file.lower().endswith('.webp')):
+            matching_file_paths.append(file_path)
 
-    # for file_path in matching_file_paths:
-    #     texture_image = Image.open(file_path)
-    #     mesh.visual.material.texture = texture_image
+    for file_path in matching_file_paths:
+        texture_image = Image.open(file_path)
+        # mesh.visual.material.texture = texture_image
+
+        # Added material
+        material = trimesh.visual.material.PBRMaterial(
+            baseColorTexture=texture_image,
+            # metallicRoughnessTexture=texture_image,
+            metallicFactor=0,
+            roughnessFactor=0.9,
+        )
+        mesh.visual.material = material
     
     mesh.export(mesh_vis_fname, 'glb')
 
